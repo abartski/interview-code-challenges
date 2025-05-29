@@ -4,5 +4,6 @@
     {
         public string BookName { get; set; }
         public string Author { get; set; }
+        public bool? OnLoan { get; set; }
     }
 }

@@ -21,6 +21,20 @@ namespace OneBeyondApi.DataAccess
             }
         }
 
+        public List<OnLoan> GetOnLoan()
+        {
+            var result = SearchCatalogue(new CatalogueSearch { OnLoan = true });
+
+            return result?
+                .GroupBy(x => x.OnLoanTo!)
+                .Select(group => new OnLoan
+                {
+                    Borrower = group.Key,
+                    BookNames = group.Select(item => item.Book.Name).ToList()
+                })
+                .ToList() ?? [];
+        }
+
         public List<BookStock> SearchCatalogue(CatalogueSearch search)
         {
             using (var context = new LibraryContext())
@@ -39,8 +53,13 @@ namespace OneBeyondApi.DataAccess
                     if (!string.IsNullOrEmpty(search.BookName)) {
                         list = list.Where(x => x.Book.Name.Contains(search.BookName));
                     }
+                    if (search.OnLoan.HasValue)
+                    {
+                        bool isOnLoan = search.OnLoan.Value;
+                        list = list.Where(x => x.OnLoanTo != null == isOnLoan);
+                    }
                 }
-                    
+
                 return list.ToList();
             }
         }

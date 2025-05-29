@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using OneBeyondApi.DataAccess;
 using OneBeyondApi.Model;
-using System.Collections;
 
 namespace OneBeyondApi.Controllers
 {
@@ -23,6 +22,13 @@ namespace OneBeyondApi.Controllers
         public IList<BookStock> Get()
         {
             return _catalogueRepository.GetCatalogue();
+        }
+
+        [HttpGet]
+        [Route("GetOnLoan")]
+        public IList<OnLoan> GetOnLoan()
+        {
+            return _catalogueRepository.GetOnLoan();
         }
 
         [HttpPost]
