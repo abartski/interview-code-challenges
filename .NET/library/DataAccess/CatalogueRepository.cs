@@ -44,6 +44,40 @@ namespace OneBeyondApi.DataAccess
             }
         }
 
+        public List<LoanReservation> GetLoanReservations()
+        {
+            using (var context = new LibraryContext())
+            {
+                return context.LoanReservations.ToList();
+            }
+        }
+
+        public string GetLoanReservationDetails(Guid borrowerId, Guid bookStockId)
+        {
+            using (var context = new LibraryContext())
+            {
+                var loanReservationDetails = "";
+
+                var loanReservation = context.LoanReservations
+                    .Include(x => x.BookStock)
+                    .FirstOrDefault(x => x.BookStock != null && x.BookStock.Id == bookStockId && x.BorrowerId == borrowerId);
+
+                if (loanReservation == null)
+                    throw new ArgumentException("Loan reservation does not exist.", nameof(bookStockId));
+
+                if (loanReservation.QueueNumber > 0)
+                {
+                    loanReservationDetails = $"You are currently number {loanReservation.QueueNumber} in the queue for this book loan - loan reservation date cannot be confirmed at this time";
+                }
+                else
+                {
+                    loanReservationDetails = $"You are currently number {loanReservation.QueueNumber} in the queue for this book loan - book stock should be available {loanReservation.BookStock!.LoanEndDate}";
+                }
+
+                return loanReservationDetails;
+            }
+        }
+
         public List<BookStock> SearchCatalogue(CatalogueSearch search)
         {
             using (var context = new LibraryContext())
@@ -83,6 +117,31 @@ namespace OneBeyondApi.DataAccess
             }
         }
 
+        public Guid AddLoanReservation(LoanReservationCreateDto createDto)
+        {
+            using (var context = new LibraryContext())
+            {
+                var bookStock = context.Catalogue.SingleOrDefault(x => x.Id == createDto.BookStockId);
+                if (bookStock == null)
+                    throw new ArgumentException("Book stock does not exist.", nameof(createDto.BookStockId));
+
+                var loanReservation = new LoanReservation
+                {
+                    BorrowerId = createDto.BorrowerId,
+                    BookStock = bookStock,
+                    QueueNumber = 0
+                };
+
+                var latestLoanReservation = context.LoanReservations.SingleOrDefault(x => x.BookStock!.Id == createDto.BookStockId);
+                if (latestLoanReservation != null)
+                    loanReservation.QueueNumber = latestLoanReservation.QueueNumber++;
+
+                context.LoanReservations.Add(loanReservation);
+                context.SaveChanges();
+                return loanReservation.Id;
+            }
+        }
+
         public LoanUpdateResultDto UpdateLoan(Guid bookStockId, LoanUpdateDto updateDto)
         {
             using (var context = new LibraryContext())
@@ -104,7 +163,7 @@ namespace OneBeyondApi.DataAccess
                     if (updateDto.LoanEndDate < DateTime.Now.Date)
                         throw new ArgumentException("Loan end date cannot be in the past.", nameof(updateDto.LoanEndDate));
 
-                    var borrower = context.Borrowers.SingleOrDefault(b => b.Id == updateDto.BorrowerId.Value);
+                    var borrower = context.Borrowers.SingleOrDefault(x => x.Id == updateDto.BorrowerId.Value);
                     if (borrower == null)
                         throw new ArgumentException("Borrower does not exist.", nameof(updateDto.BorrowerId));
 
@@ -129,6 +188,29 @@ namespace OneBeyondApi.DataAccess
                         };
 
                         AddLoanFine(loanFine);
+                    }
+
+                    var reservations = context.LoanReservations
+                        .Where(x => x.BookStock != null && x.BookStock.Id == bookStockId)
+                        .OrderBy(x => x.QueueNumber)
+                        .ToList();
+
+                    if (reservations.Count > 0)
+                    {
+                        var reservationReturned = reservations.FirstOrDefault(x => x.BorrowerId == updateDto.BorrowerId);
+                        if (reservationReturned != null)
+                        {
+                            int returnedQueueNumber = reservationReturned.QueueNumber;
+
+                            context.LoanReservations.Remove(reservationReturned);
+
+                            foreach (var reservation in reservations.Where(x => x.QueueNumber > returnedQueueNumber))
+                            {
+                                reservation.QueueNumber--;
+                            }
+
+                            context.SaveChanges();
+                        }
                     }
 
                     bookStock.LoanEndDate = null;

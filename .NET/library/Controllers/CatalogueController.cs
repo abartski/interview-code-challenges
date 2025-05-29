@@ -39,6 +39,20 @@ namespace OneBeyondApi.Controllers
             return _catalogueRepository.GetLoanFines();
         }
 
+        [HttpGet]
+        [Route("GetLoanReservations")]
+        public IList<LoanReservation> GetLoanReservations()
+        {
+            return _catalogueRepository.GetLoanReservations();
+        }
+
+        [HttpGet]
+        [Route("{bookStockId}/{borrowerId}/Loan/Reservation/Details")]
+        public string GetLoanReservationDetails(Guid borrowerId, Guid bookStockId)
+        {
+            return _catalogueRepository.GetLoanReservationDetails(borrowerId, bookStockId);
+        }
+
         [HttpPost]
         [Route("SearchCatalogue")]
         public IList<BookStock> Post(CatalogueSearch search)
@@ -51,6 +65,13 @@ namespace OneBeyondApi.Controllers
         public Guid PostLoanFine(LoanFine loanFine)
         {
             return _catalogueRepository.AddLoanFine(loanFine);
+        }
+
+        [HttpPost]
+        [Route("AddLoanReservation")]
+        public Guid PostLoanReservation(LoanReservationCreateDto createDto)
+        {
+            return _catalogueRepository.AddLoanReservation(createDto);
         }
 
         [HttpPatch]

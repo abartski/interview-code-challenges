@@ -14,5 +14,6 @@ namespace OneBeyondApi.DataAccess
         public DbSet<BookStock> Catalogue { get; set; }
         public DbSet<Borrower> Borrowers { get; set; }
         public DbSet<LoanFine> LoanFines { get; set; }
+        public DbSet<LoanReservation> LoanReservations { get; set; }
     }
 }
