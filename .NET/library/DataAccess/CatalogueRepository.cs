@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using OneBeyondApi.DTO;
 using OneBeyondApi.Model;
 
 namespace OneBeyondApi.DataAccess
@@ -61,6 +62,74 @@ namespace OneBeyondApi.DataAccess
                 }
 
                 return list.ToList();
+            }
+        }
+
+        public LoanUpdateResultDto UpdateLoan(Guid bookStockId, LoanUpdateDto updateDto)
+        {
+            using (var context = new LibraryContext())
+            {
+                if (updateDto == null)
+                    throw new ArgumentNullException(nameof(updateDto), "Update data must be provided.");
+
+                var bookStock = context.Catalogue.SingleOrDefault(x => x.Id == bookStockId);
+                if (bookStock == null)
+                    throw new ArgumentException("Book stock does not exist.", nameof(bookStockId));
+
+                if (updateDto.BorrowerId != null)
+                {
+                    if (!updateDto.LoanEndDate.HasValue)
+                        throw new InvalidOperationException("Cannot set a borrower without an end date.");
+
+                    if (updateDto.LoanEndDate.Value < DateTime.UtcNow)
+                        throw new ArgumentException("Loan end date cannot be in the past.", nameof(updateDto.LoanEndDate));
+
+                    var borrower = context.Borrowers.SingleOrDefault(b => b.Id == updateDto.BorrowerId.Value);
+                    if (borrower == null)
+                        throw new ArgumentException("Borrower does not exist.", nameof(updateDto.BorrowerId));
+
+                    bookStock.LoanEndDate = updateDto.LoanEndDate;
+                    bookStock.OnLoanTo = borrower;
+                }
+                else
+                {
+                    if (updateDto.LoanEndDate.HasValue)
+                        throw new InvalidOperationException("Cannot set a loan end date without a borrower.");
+
+                    bookStock.LoanEndDate = null;
+                    bookStock.OnLoanTo = null;
+
+                    // explicitly clear the shadow FK for OnLoanTo (in-memory DB limitation workaround)
+                    context.Entry(bookStock).Property("OnLoanToId").CurrentValue = null;
+                }
+
+                context.SaveChanges();
+
+                return new LoanUpdateResultDto
+                {
+                    BookStockId = bookStock.Id,
+                    LoanEndDate = bookStock.LoanEndDate,
+                    BorrowerId = bookStock.OnLoanTo?.Id
+                };
+            }
+        }
+
+        public LoanUpdateResultDto ReturnOnLoan(Guid bookStockId)
+        {
+            using (var context = new LibraryContext())
+            {
+                var updateDto = new LoanUpdateDto
+                {
+                    LoanEndDate = null,
+                    BorrowerId = null
+                };
+
+                var result = UpdateLoan(bookStockId, updateDto);
+
+                if (result == null)
+                    throw new ArgumentException("Loan could not be returned.", nameof(bookStockId));
+
+                return result;
             }
         }
     }

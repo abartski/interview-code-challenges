@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using OneBeyondApi.DataAccess;
+using OneBeyondApi.DTO;
 using OneBeyondApi.Model;
 
 namespace OneBeyondApi.Controllers
@@ -36,6 +37,24 @@ namespace OneBeyondApi.Controllers
         public IList<BookStock> Post(CatalogueSearch search)
         {
             return _catalogueRepository.SearchCatalogue(search);
+        }
+
+        [HttpPatch]
+        [Route("{bookStockId}/Loan")]
+        public IActionResult UpdateLoan(Guid bookStockId, [FromBody] LoanUpdateDto updateDto)
+        {
+            var result = _catalogueRepository.UpdateLoan(bookStockId, updateDto);
+
+            return Ok(result);
+        }
+
+        [HttpPatch]
+        [Route("{bookStockId}/Loan/Return")]
+        public IActionResult ReturnOnLoan(Guid bookStockId)
+        {
+            var result = _catalogueRepository.ReturnOnLoan(bookStockId);
+
+            return Ok(result);
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using OneBeyondApi.Model;
+﻿using OneBeyondApi.DTO;
+using OneBeyondApi.Model;
 
 namespace OneBeyondApi.DataAccess
 {
@@ -9,5 +10,9 @@ namespace OneBeyondApi.DataAccess
         public List<OnLoan> GetOnLoan();
 
         public List<BookStock> SearchCatalogue(CatalogueSearch search);
+
+        public LoanUpdateResultDto UpdateLoan(Guid bookStockId, LoanUpdateDto updateDto);
+
+        public LoanUpdateResultDto ReturnOnLoan(Guid bookStockId);
     }
 }
