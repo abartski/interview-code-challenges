@@ -32,11 +32,25 @@ namespace OneBeyondApi.Controllers
             return _catalogueRepository.GetOnLoan();
         }
 
+        [HttpGet]
+        [Route("GetLoanFines")]
+        public IList<LoanFine> GetLoanFines()
+        {
+            return _catalogueRepository.GetLoanFines();
+        }
+
         [HttpPost]
         [Route("SearchCatalogue")]
         public IList<BookStock> Post(CatalogueSearch search)
         {
             return _catalogueRepository.SearchCatalogue(search);
+        }
+
+        [HttpPost]
+        [Route("AddLoanFine")]
+        public Guid PostLoanFine(LoanFine loanFine)
+        {
+            return _catalogueRepository.AddLoanFine(loanFine);
         }
 
         [HttpPatch]

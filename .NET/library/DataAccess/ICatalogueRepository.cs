@@ -9,7 +9,11 @@ namespace OneBeyondApi.DataAccess
 
         public List<OnLoan> GetOnLoan();
 
+        public List<LoanFine> GetLoanFines();
+
         public List<BookStock> SearchCatalogue(CatalogueSearch search);
+
+        public Guid AddLoanFine(LoanFine loanFine);
 
         public LoanUpdateResultDto UpdateLoan(Guid bookStockId, LoanUpdateDto updateDto);
 

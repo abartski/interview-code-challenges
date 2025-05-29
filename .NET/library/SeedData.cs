@@ -56,6 +56,13 @@ namespace OneBeyondApi
                 EmailAddress = "liana@gmail.com"
             };
 
+            var bookOnLoanUntilLastWeek = new BookStock
+            {
+                Book = rustBook,
+                OnLoanTo = daveSmith,
+                LoanEndDate = DateTime.Now.Date.AddDays(-7)
+            };
+
             var bookOnLoanUntilToday = new BookStock {
                 Book = clayBook,
                 OnLoanTo = daveSmith,
@@ -97,6 +104,7 @@ namespace OneBeyondApi
                 context.Borrowers.Add(daveSmith);
                 context.Borrowers.Add(lianaJames);
 
+                context.Catalogue.Add(bookOnLoanUntilLastWeek);
                 context.Catalogue.Add(bookOnLoanUntilToday);
                 context.Catalogue.Add(bookNotOnLoan);
                 context.Catalogue.Add(bookOnLoanUntilNextWeek);

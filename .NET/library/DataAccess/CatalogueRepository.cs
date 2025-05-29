@@ -36,6 +36,14 @@ namespace OneBeyondApi.DataAccess
                 .ToList() ?? [];
         }
 
+        public List<LoanFine> GetLoanFines()
+        {
+            using (var context = new LibraryContext())
+            {
+                return context.LoanFines.ToList();
+            }
+        }
+
         public List<BookStock> SearchCatalogue(CatalogueSearch search)
         {
             using (var context = new LibraryContext())
@@ -65,6 +73,16 @@ namespace OneBeyondApi.DataAccess
             }
         }
 
+        public Guid AddLoanFine(LoanFine loanFine)
+        {
+            using (var context = new LibraryContext())
+            {
+                context.LoanFines.Add(loanFine);
+                context.SaveChanges();
+                return loanFine.Id;
+            }
+        }
+
         public LoanUpdateResultDto UpdateLoan(Guid bookStockId, LoanUpdateDto updateDto)
         {
             using (var context = new LibraryContext())
@@ -72,16 +90,18 @@ namespace OneBeyondApi.DataAccess
                 if (updateDto == null)
                     throw new ArgumentNullException(nameof(updateDto), "Update data must be provided.");
 
-                var bookStock = context.Catalogue.SingleOrDefault(x => x.Id == bookStockId);
+                var bookStock = context.Catalogue
+                    .Include(x => x.OnLoanTo)
+                    .SingleOrDefault(x => x.Id == bookStockId);
                 if (bookStock == null)
                     throw new ArgumentException("Book stock does not exist.", nameof(bookStockId));
 
                 if (updateDto.BorrowerId != null)
                 {
-                    if (!updateDto.LoanEndDate.HasValue)
+                    if (updateDto.LoanEndDate == null)
                         throw new InvalidOperationException("Cannot set a borrower without an end date.");
 
-                    if (updateDto.LoanEndDate.Value < DateTime.UtcNow)
+                    if (updateDto.LoanEndDate < DateTime.Now.Date)
                         throw new ArgumentException("Loan end date cannot be in the past.", nameof(updateDto.LoanEndDate));
 
                     var borrower = context.Borrowers.SingleOrDefault(b => b.Id == updateDto.BorrowerId.Value);
@@ -93,8 +113,23 @@ namespace OneBeyondApi.DataAccess
                 }
                 else
                 {
-                    if (updateDto.LoanEndDate.HasValue)
+                    if (updateDto.LoanEndDate != null)
                         throw new InvalidOperationException("Cannot set a loan end date without a borrower.");
+
+                    if (bookStock.LoanEndDate == null || bookStock.OnLoanTo == null)
+                        throw new InvalidOperationException("Loan end date or borrower is already null.");
+
+                    if (bookStock.LoanEndDate < DateTime.Now.Date)
+                    {
+                        var loanFine = new LoanFine
+                        {
+                            BorrowerId = bookStock.OnLoanTo.Id,
+                            BookStockId = bookStockId,
+                            Active = true
+                        };
+
+                        AddLoanFine(loanFine);
+                    }
 
                     bookStock.LoanEndDate = null;
                     bookStock.OnLoanTo = null;
